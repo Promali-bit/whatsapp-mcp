@@ -1,0 +1,27 @@
+# Public entry point. Only requests under /<MCP_SECRET_PATH>/ reach the MCP server;
+# everything else gets a 404. The MCP server and bridge have no auth of their own,
+# so this secret path is the only thing protecting your WhatsApp account.
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT} {
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	handle_path /{$MCP_SECRET_PATH}/* {
+		reverse_proxy 127.0.0.1:8000 {
+			# The MCP server only accepts localhost Host headers (DNS-rebinding guard).
+			header_up Host 127.0.0.1:8000
+			header_up -Origin
+			# Don't buffer streamed MCP responses.
+			flush_interval -1
+		}
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}
