@@ -44,6 +44,7 @@ COPY --from=bridge-build /out/whatsapp-bridge ./whatsapp-bridge/whatsapp-bridge
 RUN mkdir -p ./whatsapp-bridge/store
 
 COPY Caddyfile start.sh ./
+COPY qr-web/ ./qr-web/
 RUN chmod +x start.sh
 
 ENV WHATSAPP_BRIDGE_PORT=8080 \

@@ -12,12 +12,24 @@
 	}
 
 	handle_path /{$MCP_SECRET_PATH}/* {
-		reverse_proxy 127.0.0.1:8000 {
-			# The MCP server only accepts localhost Host headers (DNS-rebinding guard).
-			header_up Host 127.0.0.1:8000
-			header_up -Origin
-			# Don't buffer streamed MCP responses.
-			flush_interval -1
+		# QR pairing page (/<secret>/qr) and its state file (/<secret>/qr/state.json)
+		@qrroot path /qr
+		redir @qrroot /{$MCP_SECRET_PATH}/qr/ 308
+
+		handle_path /qr/* {
+			root * /app/qr-web
+			header Cache-Control "no-store"
+			file_server
+		}
+
+		handle {
+			reverse_proxy 127.0.0.1:8000 {
+				# The MCP server only accepts localhost Host headers (DNS-rebinding guard).
+				header_up Host 127.0.0.1:8000
+				header_up -Origin
+				# Don't buffer streamed MCP responses.
+				flush_interval -1
+			}
 		}
 	}
 

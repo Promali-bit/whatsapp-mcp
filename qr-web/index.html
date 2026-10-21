@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>WhatsApp pairing</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: #f4f4f2; color: #1d1d1b; font: 16px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  main { text-align: center; padding: 24px 16px; max-width: 460px; width: 100%; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  p { margin: 0 0 16px; color: #555; }
+  #qr { background: #fff; padding: 20px; border-radius: 12px; display: inline-block; min-width: 280px; min-height: 280px; }
+  #qr svg { display: block; width: 280px; height: 280px; shape-rendering: crispEdges; }
+  #status { font-weight: 600; margin-top: 16px; }
+  .ok { color: #1a7f37; } .warn { color: #9a6700; }
+  .steps { text-align: left; font-size: 0.9rem; color: #555; margin-top: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Link WhatsApp</h1>
+  <p>WhatsApp → Settings → Linked Devices → Link a Device</p>
+  <div id="qr"></div>
+  <div id="status">Loading…</div>
+  <div class="steps" id="hint"></div>
+</main>
+<!-- qrcode-generator 1.4.4 (MIT, Kazuhiko Arase), bundled locally -->
+<script src="qrcode.js"></script>
+<script>
+  var box = document.getElementById('qr');
+  var statusEl = document.getElementById('status');
+  var hint = document.getElementById('hint');
+  var lastCode = null;
+
+  function show(state, code) {
+    if (state === 'waiting' && code) {
+      if (code !== lastCode) {
+        var qr = qrcode(0, 'L');
+        qr.addData(code);
+        qr.make();
+        box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0 });
+        lastCode = code;
+      }
+      statusEl.className = '';
+      statusEl.textContent = 'Scan now. The code refreshes automatically.';
+      hint.textContent = '';
+      return;
+    }
+    lastCode = null;
+    box.innerHTML = '';
+    if (state === 'connected') {
+      statusEl.className = 'ok';
+      statusEl.textContent = '✓ WhatsApp is linked. You can close this page.';
+      hint.textContent = '';
+    } else if (state === 'expired') {
+      statusEl.className = 'warn';
+      statusEl.textContent = 'Codes expired. New ones appear automatically within a few minutes.';
+      hint.textContent = 'Keep this page open; it updates by itself. Restarting the service on Render gives new codes straight away.';
+    } else {
+      statusEl.className = '';
+      statusEl.textContent = 'Waiting for the bridge to start…';
+      hint.textContent = '';
+    }
+  }
+
+  function poll() {
+    fetch('state.json?ts=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (s) { show(s.state, s.code); })
+      .catch(function () { show('starting', ''); })
+      .finally(function () { setTimeout(poll, 2000); });
+  }
+  poll();
+</script>
+</body>
+</html>
