@@ -24,7 +24,13 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
+# The official caddy binary carries a file capability (cap_net_bind_service),
+# which Render's runtime refuses to exec ("Operation not permitted"). We listen
+# on a high port, so copy the bytes into a fresh file to drop the capability.
+COPY --from=caddy /usr/bin/caddy /tmp/caddy-src
+RUN cat /tmp/caddy-src > /usr/local/bin/caddy \
+ && chmod 0755 /usr/local/bin/caddy \
+ && rm /tmp/caddy-src
 
 WORKDIR /app
 
